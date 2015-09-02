@@ -32,7 +32,7 @@ for rel in data:
     
 #loop through the folder for mp4 movies and copy them to the designated folder.
 movies = glob.glob(user_input+"/*.mp4") #video source
-designated_dest = "/video"				#videos designated destination
+designated_dest = "/home/voti/django/iQ_Script/video2"				#videos designated destination
 
 for movie in movies:
 	shutil.copy(movie,designated_dest)
