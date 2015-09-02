@@ -1,17 +1,9 @@
 import csv, sqlite3
 import os,sys
 import shutil
+import glob
 
-user_input = raw_input("Enter the path of your video: ")
-# open a file
-#thisfile = os.open(user_input+"/manifest.txt",os.O_RDWR)
-# reading text
-#output = os.read(thisfile,100)
-#print output
-
-#source = user_input #video source
-#designated_dest = "/video"
-#shutil.move(source, designated_dest)  
+user_input = raw_input("Enter the path of your video: ") 
 
 conn = sqlite3.connect("test.db")
 curs = conn.cursor()
@@ -27,3 +19,9 @@ meta = curs.execute("select * from PCFC")
 for r in meta:
     print r
     
+#loop through the folder for mp4 movies and copy them to the designated folder.
+movies = glob.glob(user_input+"/*.mp4") #video source
+designated_dest = "/video"				#videos designated destination
+
+for movie in movies:
+	shutil.copy(movie,designated_dest)
