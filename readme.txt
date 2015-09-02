@@ -1,4 +1,4 @@
-This document details the structure of the manifest file to be created by the Manifest Generation Tool.
+This document details the structure of the manifest file to be read by the Video Upload Tool.
 
 Each video must be a .mp4 file.
 The following are the video attributes we are interested in:
@@ -61,7 +61,7 @@ In pretty print format the JSON object above would look like so:
 }
 
 MODUS-OPERANDI
-The manifest generation tool should therefore create a file that would have a JSON array of all the .mp4 videos in the 
+The video upload tool should therefore read a file that would have a JSON array of all the .mp4 videos in the 
 specified root folder as JSON objects. An example is given below:
 
 [{ class: "p1", subject: "mth", term: "f", week: "01", lesson: "01", part: "a", format: "mp4" },{ class: "p1", subject: "mth", term: "f", week: "01", lesson: "01", part: "b", format: "mp4" },
