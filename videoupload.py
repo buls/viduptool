@@ -2,7 +2,7 @@ import csv, sqlite3
 import os,sys
 import shutil
 
-user_input = raw_input("Enter the path to copy video from: ")
+user_input = raw_input("Enter the path to copy video(s) from: ")
 # open a file
 #thisfile = os.open(user_input+"/manifest.txt",os.O_RDWR)
 # reading text
