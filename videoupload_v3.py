@@ -29,7 +29,7 @@ curs.execute("CREATE TABLE Week(id text,desc text,primary key(id));")
 
 
 # open a json file
-with open('video/manifest.json') as data_file:
+with open('video/manifest.iq') as data_file:
     data = json.load(data_file)
 
 #loop through the json file and get its attribute 
