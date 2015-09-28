@@ -9,6 +9,7 @@ import re
 import shutil
 import glob
 
+##Lookup section START
 # descriptions for classes
 classList = {"p1":"Primary One", "p2":"Primary Two", "p3":"Primary Three", "p4":"Primary Four", "p5":"Primary Five", "p6":"Primary Six"}
 
@@ -26,6 +27,7 @@ topicList = {"01":"Phonological awareness"}
 
 # lesson and id
 lessonList = {"001":"Auditory perception and awareness"}
+##Lookup section END
 
 user_input = raw_input("Enter the path to copy video(s) from: ")
 
@@ -41,9 +43,9 @@ curs.execute("CREATE TABLE IF NOT EXISTS Subject(id text,desc text,primary key(i
 
 curs.execute("CREATE TABLE IF NOT EXISTS Term(id text,desc text,primary key(id));")
 
-curs.execute("CREATE TABLE IF NOT EXISTS Theme(cstid text,themeid text,desc text);")
+curs.execute("CREATE TABLE IF NOT EXISTS Theme(cstid text,themeid text,desc text, primary key(cstid, themeid));")
 
-curs.execute("CREATE TABLE IF NOT EXISTS Topic(cst_themeid text,topicid text,desc text);")
+curs.execute("CREATE TABLE IF NOT EXISTS Topic(cst_themeid text,topicid text,desc text, primary key(cst_themeid,topicid));")
 
 # create lesson tables for 13 weeks
 # for all three terms i.e 1st - 3rd term
@@ -81,11 +83,14 @@ for i in data:
     curs.execute('''insert or ignore into Class(id,desc) values(?,?)''',(vclass,classList[vclass]))
     curs.execute('''insert or ignore into Subject(id, desc) values(?,?)''',(subject, subjectList[subject]))
     curs.execute('''insert or ignore into Term(id, desc) values(?,?)''',(term, termList[term])) 
-    curs.execute('''insert or ignore into Theme(themeid, desc) values(?,?)''',(theme, themeList[theme]))
-    curs.execute('''insert or ignore into Topic(topicid, desc) values(?,?)''',(topic, topicList[topic]))
+
+    cstid = vclass+"_"+subject+"_"+term
+    curs.execute('''insert or ignore into Theme(cstid,themeid,desc) values(?,?,?)''',(cstid, theme, themeList[theme]))
+
+    cst_themeid = cstid+"_"+theme
+    curs.execute('''insert or ignore into Topic(cst_themeid,topicid,desc) values(?,?,?)''',(cst_themeid,topic, topicList[topic]))
     
     # check for pattern and extract desired section for each file name
-    #print  class_subj_term_week_lesson_lessonpart
     match = re.search('([\w.-]+)_([\w.-]+)_([\w.-]+)_([\w.-]+)_([\w.-]+)_([\w.-]+)_([\w.-]+)_(.*)', class_subj_term_theme_topic_lesson_lessonpart_videotitle)
     if match:
         classx = match.group(1)
@@ -96,7 +101,7 @@ for i in data:
         lessonx = match.group(6)
         lessonpartx = match.group(7)
         videotitlex = match.group(8)
-        print classx, " ", subjectx, " ",termx, " ", themex, " ", topicx, " ", lessonx, " ", lessonpartx, " ", videotitlex
+        #print classx, " ", subjectx, " ",termx, " ", themex, " ", topicx, " ", lessonx, " ", lessonpartx, " ", videotitlex
 
 
         # for math, bsc and eng first term
