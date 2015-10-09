@@ -1,57 +1,50 @@
 """
-Video upload tool reads a file containing a JSON array of all the .mp4 videos in the 
-specified root folder as JSON objects.
+    Video upload tool reads a file containing a JSON array of all the .mp4 videos in the 
+    specified root folder as JSON objects.
+
+    Update: YemiDaniel.07/10/2015
+    1. Read the manifest.
+    2. Then for each record, confirm that the IDs (class, subject, term, theme, topic, lesson) have a correcsponding description in the DB.
+    3. and only if a description is returned for ALL, insert the video into the DB (video table)
+    4. and copy from source to destination folder.
 """
+
+#print("script imported")
 
 import sqlite3
 import json
-import re
 import shutil
 import glob
 
-##Lookup section START
-# descriptions for classes
-classList = {"p1":"Primary One", "p2":"Primary Two", "p3":"Primary Three", "p4":"Primary Four", "p5":"Primary Five", "p6":"Primary Six"}
-
-# descriptions for subjects
-subjectList = {"mth":"Mathematics", "eng":"English", "bsc":"Basic Science"}
-
-# description for terms
-termList = {"f":"First Term", "s":"Second Term", "t":"Third Term"}
-
-# theme and id
-themeList = {"01":"Reading"}
-
-# topic and id
-topicList = {"01":"Phonological awareness"}
-
-# lesson and id
-lessonList = {"001":"Auditory perception and awareness"}
-##Lookup section END
-
-user_input = raw_input("Enter the path to copy video(s) from: ")
-
 # connects to database
-#conn = sqlite3.connect("/home/voti/ka-lite-master/kalite/database/data.sqlite")
-conn = sqlite3.connect("C:/Users/Ola/Desktop/NG/Dev/projects/python/viduptoolWorking/data1.sqlite")
+
+#dbFile = "/home/pi/iq/kalite/database/data.sqlite" #on the pi
+dbFile = "C:/Users/Ola/Desktop/NG/Dev/projects/python/viduptoolWorking/data1.sqlite"
+conn = sqlite3.connect(dbFile)
 curs = conn.cursor()
 
-### create tables
-curs.execute("CREATE TABLE IF NOT EXISTS Class(id text,desc text,primary key(id));")
+def validDescription(theSQL, theID=""):
+    validity = False
+    curs.execute(theSQL)
+    result=curs.fetchone()
+    try:
+       if result[0] is None: #no description
+           print(theID+"is in the database but has no description.")
+           validity = False
+       else:                 #description exists
+           validity =  True
+    except:                  #no matching id in table
+           print(theID+" is not in the database.")
+           validity =  False
+        
+    return validity
+"""Checks the given table for a description to the specified id"""
 
-curs.execute("CREATE TABLE IF NOT EXISTS Subject(id text,desc text,primary key(id));")
-
-curs.execute("CREATE TABLE IF NOT EXISTS Term(id text,desc text,primary key(id));")
-
-curs.execute("CREATE TABLE IF NOT EXISTS Theme(cstid text,themeid text,desc text, primary key(cstid, themeid));")
-
-curs.execute("CREATE TABLE IF NOT EXISTS Topic(cst_themeid text,topicid text,desc text, primary key(cst_themeid,topicid));")
-
-# create lesson tables for 13 weeks
-# for all three terms i.e 1st - 3rd term
+vidSource = raw_input("Enter the path to copy video(s) from: ")
 
 # open the (json) manifest file
-with open('manifest.iq') as data_file:
+#print(vidSource+'/manifest.iq')
+with open(vidSource+'/manifest.iq') as data_file:
     data = json.load(data_file)
 
 #loop through the json file and get its attribute
@@ -66,63 +59,54 @@ for i in data:
     subject = i['subject']
     topic = i['topic']
     videotitle = i['videotitle']
-    # dynamically creates table
-    # from manifest file
-    lesson_table = vclass+"_"+subject+"_"+term    #Lesson table
-    curs.execute("CREATE TABLE IF NOT EXISTS " + lesson_table + "(id text,lessonid text,desc text,primary key(id,lessonid));")
-    
-    # make id and videoid composite keys
-    video_table = lesson_table +"_video"          #Video table
-    curs.execute("CREATE TABLE IF NOT EXISTS " + video_table + "(id text,videoid text,title text,filename text,primary key(id,videoid));")
-    
-    
-    #creates the file name with the required format
-    class_subj_term_theme_topic_lesson_lessonpart_videotitle = vclass+"_"+subject+"_"+term+"_"+theme+"_"+topic+"_"+lesson+"_"+lesson_part+"_"+videotitle
-        
-    # do an insert into the created table above with attributes from the json file
-    curs.execute('''insert or ignore into Class(id,desc) values(?,?)''',(vclass,classList[vclass]))
-    curs.execute('''insert or ignore into Subject(id, desc) values(?,?)''',(subject, subjectList[subject]))
-    curs.execute('''insert or ignore into Term(id, desc) values(?,?)''',(term, termList[term])) 
 
+    lesson_table = vclass+"_"+subject+"_"+term
+
+    video_table = lesson_table +"_video"
+        
+    #1 CLASS:
+    theClassSQL = "select desc from Class where id = '{0}'".format(vclass)
+
+    #2 SUBJECT
+    theSubjectSQL = "select desc from Subject where id = '{0}'".format(subject)
+
+    #3 TERM
+    theTermSQL = "select desc from Term where id = '{0}'".format(term)
+
+    #4 THEME
     cstid = vclass+"_"+subject+"_"+term
-    curs.execute('''insert or ignore into Theme(cstid,themeid,desc) values(?,?,?)''',(cstid, theme, themeList[theme]))
+    theThemeSQL = "select desc from Theme where cstid = '{0}' AND themeid = '{1}'".format(cstid, theme)
 
+    #5 TOPIC
     cst_themeid = cstid+"_"+theme
-    curs.execute('''insert or ignore into Topic(cst_themeid,topicid,desc) values(?,?,?)''',(cst_themeid,topic, topicList[topic]))
-    
-    # check for pattern and extract desired section for each file name
-    match = re.search('([\w.-]+)_([\w.-]+)_([\w.-]+)_([\w.-]+)_([\w.-]+)_([\w.-]+)_([\w.-]+)_(.*)', class_subj_term_theme_topic_lesson_lessonpart_videotitle)
-    if match:
-        classx = match.group(1)
-        subjectx = match.group(2)
-        termx = match.group(3)
-        themex = match.group(4)
-        topicx = match.group(5)
-        lessonx = match.group(6)
-        lessonpartx = match.group(7)
-        videotitlex = match.group(8)
-        #print classx, " ", subjectx, " ",termx, " ", themex, " ", topicx, " ", lessonx, " ", lessonpartx, " ", videotitlex
+    theTopicSQL = "select desc from Topic where cst_themeid = '{0}' AND topicid = '{1}'".format(cst_themeid, topic)
 
+    #6 LESSSON
+    csttt_id = vclass+"_"+subject+"_"+term+"_"+theme+"_"+topic
+    cstttl_id = csttt_id+"_"+lesson
+    theLessonTable = vclass+"_"+subject+"_"+term
+    theLessonSQL = "select desc from {0} where id = '{1}' AND lessonid = '{2}'".format(theLessonTable, csttt_id, lesson)
 
-        # for math, bsc and eng first term
-        csttt_id = classx+"_"+subjectx+"_"+termx+"_"+themex+"_"+topicx
-        lessonid = lessonx
-        cstttl_id = csttt_id+"_"+lessonid
-        lessonpart  = lessonpartx
-        theLessonTable = classx+"_"+subjectx+"_"+termx
+    #7 VIDEO, add video to video table if it has valid Class, Subject, Term, Theme, Topic and Lesson descriptions
+    if validDescription(theClassSQL, vclass) and validDescription(theSubjectSQL, subject)\
+       and validDescription(theTermSQL, term) and validDescription(theThemeSQL, cstid+" "+theme)\
+       and validDescription(theTopicSQL, cst_themeid+" "+topic) and validDescription(theLessonSQL, csttt_id+" "+lesson):
+
         theVideoTable = theLessonTable+"_video"
-        curs.execute("insert or ignore into "+theLessonTable+"(id,lessonid,desc) values(?,?,?)",(csttt_id,lessonid,lessonList[lessonid]))
-
-        title = videotitlex
-        filename = classx+"_"+subjectx+"_"+termx+"_"+themex+"_"+topicx+"_"+lessonid+"_"+lessonpart+"_"+title + file_format
+        filename = vclass+"_"+subject+"_"+term+"_"+theme+"_"+topic+"_"+lesson+"_"+lesson_part+"_"+videotitle+file_format
         curs.execute("insert or ignore into "+theVideoTable+"(id,videoid,title,filename)\
-        values(?,?,?,?)",(cstttl_id,lessonpart,title,filename))
-        
-        conn.commit()
-            
-#loop through the folder for mp4 movies and copy them to the designated folder.
-movies = glob.glob(user_input+"/*.mp4") #video source
-designated_dest = "/home/voti/ka-lite-master/vids" #videos designated destination
+        values(?,?,?,?)",(cstttl_id,lesson_part,videotitle,filename))
+        print("adding to db: "+filename)
 
-for movie in movies:
-    shutil.copy(movie,designated_dest)
+        #copy to the designated folder
+        movie = vidSource+"/"+filename #video source
+        print  ("copying to iq: "+filename)
+        vidDest = "C:/1d"
+        #vidDest = "/home/pi/iq/kalite/distributed/static/iqcontent/videos" #on the pi
+        shutil.copy(movie,vidDest)
+    else:
+        filename = vclass+"_"+subject+"_"+term+"_"+theme+"_"+topic+"_"+lesson+"_"+lesson_part+"_"+videotitle+file_format
+        print ("failed: "+filename)
+    conn.commit()
+
+print("DONE...")
