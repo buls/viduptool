@@ -20,13 +20,11 @@ class Videoupload(object):
 
     def __init__(self, vidupGUI=None):
 
-        self.vidupGUI = vidupGUI #a handle to the GUI object
+        self.vidupGUI = vidupGUI #a handle to the optional GUI object
 
-        self.set_dbFile("C:/Users/Ola/Desktop/NG/Dev/projects/python/viduptoolWorking/data1.sqlite")
-        #dbFile = "/home/pi/iq/kalite/database/data.sqlite" #on the pi
-
-        self.set_vidDest("C:/1d")
-        #vidDest = "/home/pi/iq/kalite/distributed/static/iqcontent/videos" #on the pi
+        self.set_dbFile("/home/pi/iq/kalite/database/data.sqlite")
+        
+        self.set_vidDest("/home/pi/iq/kalite/distributed/static/iqcontent/videos")
 
     def print_to(self, theStr): #console or gui depending on which is running
         if __name__ == "__main__":
@@ -35,7 +33,7 @@ class Videoupload(object):
             self.vidupGUI.writeToConsole(theStr)
 
     def set_vidSource(self, vidSource):
-        self.vidSource = vidSource
+        self.vidSource = vidSource+"/"
 
     def set_dbFile(self, dbFile):
         self.dbFile = dbFile
@@ -55,8 +53,7 @@ class Videoupload(object):
         self.curs = self.conn.cursor()
 
         # open the (json) manifest file
-        #self.print_to(vidSource+'/manifest.iq')
-        with open(self.vidSource+'/manifest.iq') as data_file:
+        with open(self.vidSource+'manifest.iq') as data_file:
             self.data = json.load(data_file)
 
         #loop through the json file and get its attribute
@@ -111,11 +108,10 @@ class Videoupload(object):
                 self.print_to("adding "+self.cstttl_id+" "+self.lesson_part+" "+filename+" to db")
 
                 #copy to the designated folder
-                movie = self.vidSource+"/"+filename #video source
+                movie = self.vidSource+filename #video source
                 self.print_to("copying to iq: "+filename+"\n")
                 shutil.copy(movie,self.vidDest)
             else:
-                #filename = vclass+"_"+subject+"_"+term+"_"+theme+"_"+topic+"_"+lesson+"_"+lesson_part+"_"+videotitle+file_format
                 self.print_to("failed: "+filename)
             self.conn.commit()
 
