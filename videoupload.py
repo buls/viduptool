@@ -1,4 +1,4 @@
-import sqlite3, json, shutil, sys
+import sqlite3, json, shutil, sys, os
 
 class Videoupload(object):  
 
@@ -103,14 +103,26 @@ class Videoupload(object):
 
                 self.theVideoTable = self.theLessonTable+"_video"
                 filename = self.vclass+"_"+self.subject+"_"+self.term+"_"+self.theme+"_"+self.topic+"_"+self.lesson+"_"+self.lesson_part+"_"+self.videotitle+self.file_format
-                self.curs.execute("insert or ignore into "+self.theVideoTable+"(id,videoid,title,filename)\
-                values(?,?,?,?)",(self.cstttl_id,self.lesson_part,self.videotitle,filename))
+                new_filename = self.vclass+"_"+self.subject+"_"+self.term+"_"+self.theme+"_"+self.topic+"_"+self.lesson+"_"+self.lesson_part+self.file_format
+                self.curs.execute("insert or replace into "+self.theVideoTable+"(id,videoid,title,filename)\
+                values(?,?,?,?)",(self.cstttl_id,self.lesson_part,self.videotitle,new_filename))
                 self.print_to("adding "+self.cstttl_id+" "+self.lesson_part+" "+filename+" to db")
 
+				
                 #copy to the designated folder
                 movie = self.vidSource+filename #video source
                 self.print_to("copying to iq: "+filename+"\n")
                 shutil.copy(movie,self.vidDest)
+
+                #rename video filename to new_filename
+                originalFilename = self.vidDest+"/"+filename #full path
+                newFilename = self.vidDest+"/"+new_filename  #full path
+
+                  #delete if new filename already exists
+                if os.path.isfile(newFilename):
+                   os.remove(newFilename)
+                  #then rename original
+                os.rename( originalFilename, newFilename )
             else:
                 self.print_to("failed: "+filename)
             self.conn.commit()
